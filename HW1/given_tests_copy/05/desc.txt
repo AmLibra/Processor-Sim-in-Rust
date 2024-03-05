@@ -1,0 +1,1 @@
+Read after write hazard, but the interval is 3 cycles.

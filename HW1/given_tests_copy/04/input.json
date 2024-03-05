@@ -1,0 +1,26 @@
+[
+    "addi x0, x0, 10",
+    "addi x1, x1, 20",
+    "addi x2, x2, 30",
+    "addi x3, x3, 40",
+
+    "addi x9, x9, 50",
+    "addi x10, x10, 60",
+    "addi x11, x11, 70",
+    "addi x12, x12, 80",
+
+    "mulu x4, x0, x9",
+    "mulu x5, x1, x10",
+    "mulu x6, x2, x11",
+    "mulu x7, x3, x12",
+
+    "sub x4, x1, x3",
+    "sub x5, x3, x1",
+    "sub x6, x2, x0",
+    "sub x7, x0, x2",
+
+    "mulu x0, x4, x5",
+    "mulu x1, x5, x7",
+    "mulu x3, x7, x6",
+    "mulu x2, x6, x4"
+]

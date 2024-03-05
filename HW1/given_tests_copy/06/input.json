@@ -1,0 +1,15 @@
+[
+    "addi x1, x0, 10",
+    "addi x2, x0, 10",
+    "addi x3, x0, 10",
+    "addi x4, x0, 10",
+
+    "addi x5, x0, 7",
+    "addi x6, x0, 8",
+    "addi x8, x0, 12",
+    "addi x9, x0, 29",
+
+    "mulu x10, x11, x20",
+    "mulu x15, x16, x25",
+    "sub x17, x18, x19"
+]

@@ -1,0 +1,17 @@
+[
+    "addi x0, x0, 1",
+    "addi x0, x0, 2",
+    "add x0, x0, x0",
+    "add x0, x0, x0",
+
+    "sub x0, x0, x0",
+    "addi x0, x0, 2",
+    "mulu x0, x0, x0",
+    "mulu x0, x0, x0",
+
+    "add x0, x0, x0",
+    "add x0, x0, x0",
+    "divu x0, x0, x0",
+    "remu x0, x0, x0"
+]
+
