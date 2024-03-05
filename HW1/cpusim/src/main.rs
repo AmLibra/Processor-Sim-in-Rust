@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub mod architecture;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let _instructions = parse_input()?;
+    let mut instructions = parse_input()?;
 
     // Initialize the processor state
     let mut state_log: Vec<architecture::ProcessorState> = Vec::new();
@@ -15,10 +15,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Log the initial state
     processor_state.log(&mut state_log);
 
-    processor_state.add_active_list_entry(architecture::ActiveListEntry::new());
-    processor_state.add_integer_queue_entry(architecture::IntegerQueueEntry::new());
-    processor_state.set_busy_bit(0, true);
-    processor_state.log(&mut state_log);
+    while !(instructions.is_empty() && processor_state.active_list_is_empty()) {
+        let new_processor_state = processor_state.propagate(&mut instructions);
+        processor_state.latch(&new_processor_state);
+        processor_state.log(&mut state_log);
+    }
 
     save_log(&state_log)?;
 
