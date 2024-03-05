@@ -1,1 +1,0 @@
-The instruction in the middle of execution triggers exceptions.

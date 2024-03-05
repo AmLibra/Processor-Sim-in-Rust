@@ -1,1 +1,0 @@
-Two instructions trigger exceptions.
