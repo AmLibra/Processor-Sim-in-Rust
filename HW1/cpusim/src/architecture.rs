@@ -1,4 +1,3 @@
-use std::io::SeekFrom::Start;
 use serde::Serialize;
 
 const INITIAL_PC: u64 = 0;
@@ -12,6 +11,7 @@ const START_OF_FREE_REGISTER_LIST: u8 = 32;
 const END_OF_FREE_REGISTER_LIST: u8 = 64;
 const DECODED_BUFFER_SIZE: usize = 4;
 const INITIAL_EXCEPTION_STATE: bool = false;
+const ALLOWED_OP_CODES: [&str; 5] = ["add", "sub", "mulu", "divu", "remu"];
 
 #[derive(Clone, Serialize)]
 pub struct ActiveListEntry {
@@ -93,6 +93,29 @@ impl IntegerQueueEntry {
     }
 }
 
+struct DecodedInstruction {
+    op_code: String,
+    logical_destination: u8,
+    op_a_reg_tag: u8,
+    op_b_reg_tag: u8,
+}
+
+impl DecodedInstruction {
+    fn new(
+        op_code: String,
+        logical_destination: u8,
+        op_a_reg_tag: u8,
+        op_b_reg_tag: u8,
+    ) -> DecodedInstruction {
+        DecodedInstruction {
+            op_code,
+            logical_destination,
+            op_a_reg_tag,
+            op_b_reg_tag,
+        }
+    }
+}
+
 #[derive(Clone, Serialize)]
 pub struct ProcessorState {
     #[serde(rename = "ActiveList")]
@@ -102,7 +125,7 @@ pub struct ProcessorState {
     #[serde(rename = "DecodedPCs")]
     decoded_pcs: Vec<u64>,
     #[serde(skip_serializing)] // skip serializing decoded instructions
-    decoded_instructions: Vec<String>,
+    decoded_instructions: Vec<DecodedInstruction>,
     #[serde(rename = "Exception")]
     exception: bool,
     #[serde(rename = "ExceptionPC")]
@@ -159,32 +182,117 @@ impl ProcessorState {
 
     /// Fetches and decodes the next four instructions from the instruction queue.
     fn fetch_and_decode(&mut self, instructions: &mut Vec<String>, backpressure: bool) {
-        // TODO: handle exceptions from commit stage and backpressure from rename and dispatch stage
-        if backpressure {
+        if backpressure || self.exception {
+            // Apply backpressure or handle exception by not fetching new instructions
             return;
         }
-        for _ in 0..DECODED_BUFFER_SIZE {
+
+        while self.decoded_instructions.len() < DECODED_BUFFER_SIZE && !instructions.is_empty() {
             if let Some(instruction) = instructions.pop() {
                 self.decoded_pcs.push(self.pc);
-                self.decoded_instructions.push(instruction);
-                self.pc += 1;
+                self.decoded_instructions.push(self.decode(instruction));
+                self.pc += 1; // Increment PC for each fetched instruction
             }
         }
     }
 
-    fn rename_and_dispatch(&mut self) -> bool {
-        let enough_free_physical_registers = self.free_list.len() >= 2;
-        let enough_integer_queue_entries = self.integer_queue.len() < INTEGER_QUEUE_SIZE;
-        let enough_active_list_entries = self.active_list.len() < ACTIVE_LIST_SIZE;
-
-        if !(enough_free_physical_registers
-            && enough_integer_queue_entries
-            && enough_active_list_entries)
-        {
-            return true;
-        } else {
-            return false;
+    /// Decodes an assembly instruction string into its components.
+    ///
+    /// ex: "add x0, x1, x2" -> ("add", 0, 1, 2)
+    fn decode(instruction: &str) -> Result<DecodedInstruction, &'static str> {
+        let parts: Vec<&str> = instruction.split_whitespace().collect();
+        if parts.len() != 4 {
+            return Err("Invalid instruction format");
         }
+
+        let op_code = parts[0].to_string();
+        if !ALLOWED_OP_CODES.contains(&op_code.as_str()) {
+            return Err("Invalid operation code");
+        }
+
+        let logical_destination = parts[1][1..]
+            .parse::<u8>()
+            .map_err(|_| "Invalid destination register")?;
+        let op_a_reg_tag = parts[2][1..]
+            .parse::<u8>()
+            .map_err(|_| "Invalid source register A")?;
+        let op_b_reg_tag = parts[3][1..]
+            .parse::<u8>()
+            .map_err(|_| "Invalid source register B")?;
+
+        Ok(DecodedInstruction::new(
+            op_code,
+            logical_destination,
+            op_a_reg_tag,
+            op_b_reg_tag,
+        ))
+    }
+
+    /// Performs the rename and dispatch process for the decoded instructions.
+    fn rename_and_dispatch(&mut self) -> bool {
+        let backpressure = true;
+        if self.decoded_instructions.is_empty() {
+            return !backpressure;
+        }
+        if !self.has_sufficient_resources() {
+            return backpressure;
+        }
+
+        for decoded_instruction in self.decoded_instructions {
+            let physical_dest_register =
+                self.allocate_physical_register(decoded_instruction.logical_destination);
+            let old_dest_register = self.register_map_table[decoded_instruction.logical_destination as usize];
+
+            let physical_op_a_reg_tag = self.register_map_table[decoded_instruction.op_a_reg_tag as usize];
+            let op_a_ready = self.register_is_ready(decoded_instruction.op_a_reg_tag);
+            let physical_op_b_reg_tag = self.register_map_table[decoded_instruction.op_b_reg_tag as usize];
+            let op_b_ready = self.register_is_ready(decoded_instruction.op_b_reg_tag);
+
+            // TODO: no care for value if not ready, check if this is correct
+            let integer_queue_entry = IntegerQueueEntry::new(
+                physical_dest_register,
+                op_a_ready,
+                physical_op_a_reg_tag,
+                self.physical_register_file[physical_op_a_reg_tag],
+                op_b_ready,
+                physical_op_b_reg_tag,
+                self.physical_register_file[physical_op_b_reg_tag],
+                decoded_instruction.op_code,
+                self.pc,
+            );
+            self.integer_queue.push(integer_queue_entry);
+
+            let active_list_entry = ActiveListEntry::new(
+                false,
+                false,
+                decoded_instruction.logical_destination,
+                old_dest_register,
+                self.pc, // TODO: this should be the PC of the instruction, not the current PC
+            );
+            self.active_list.push(active_list_entry);
+
+            // TODO: set busy bit for all read registers
+            self.set_busy_bit(physical_dest_register, true);
+        }
+
+        !backpressure
+    }
+
+    fn has_sufficient_resources(&self) -> bool {
+        self.free_list.len() >= DECODED_BUFFER_SIZE
+            && self.active_list.len() + DECODED_BUFFER_SIZE <= ACTIVE_LIST_SIZE
+            && self.integer_queue.len() + DECODED_BUFFER_SIZE <= INTEGER_QUEUE_SIZE
+    }
+
+    /// Checks if busy bit is set for a register.
+    fn register_is_ready(&self, register: u8) -> bool {
+        self.busy_bit_table[register as usize] == false
+    }
+
+    fn allocate_physical_register(&mut self, logical_register: u8) -> u8 {
+        let physical_register = self.free_list.pop().unwrap(); // TODO: not sure of allocation policy
+        self.register_map_table[logical_register as usize] = physical_register;
+        physical_register
     }
 
     pub fn add_active_list_entry(&mut self, entry: ActiveListEntry) {
