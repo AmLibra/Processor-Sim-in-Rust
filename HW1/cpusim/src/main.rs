@@ -3,6 +3,9 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
+use crate::arch_modules::Instruction;
+
+mod arch_modules;
 pub mod architecture;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -10,12 +13,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Initialize the processor state
     let mut state_log: Vec<architecture::ProcessorState> = Vec::new();
-    let mut processor_state = architecture::init_processor_state();
+    let mut processor_state = architecture::ProcessorState::new();
 
     // Log the initial state
     processor_state.log(&mut state_log);
 
-    while !(instructions.is_empty() && processor_state.active_list_is_empty()) {
+    while !(instructions.is_empty()) {
+        //TODO: also check if the active list is empty
         let new_processor_state = processor_state.propagate(&mut instructions);
         processor_state.latch(&new_processor_state);
         processor_state.log(&mut state_log);
@@ -26,10 +30,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn parse_input() -> Result<Vec<String>, Box<dyn Error>> {
+fn parse_input() -> Result<Vec<Instruction>, Box<dyn Error>> {
     let input_file = resolve_input_path()?;
     let json_data = fs::read_to_string(input_file.as_path())?;
-    let mut instructions: Vec<String> = serde_json::from_str(&json_data)?;
+    let instruction_strings: Vec<String> = serde_json::from_str(&json_data)?;
+    let mut instructions: Vec<Instruction> = instruction_strings
+        .iter()
+        .map(|x| Instruction::new(x.to_string()))
+        .collect();
     instructions.reverse();
     Ok(instructions)
 }

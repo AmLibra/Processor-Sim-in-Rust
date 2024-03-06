@@ -421,7 +421,36 @@
     ]
   },
   {
-    "ActiveList": [],
+    "ActiveList": [
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 1,
+        "OldDestination": 1,
+        "PC": 0
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 2,
+        "OldDestination": 2,
+        "PC": 1
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 3,
+        "OldDestination": 3,
+        "PC": 2
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 4,
+        "OldDestination": 4,
+        "PC": 3
+      }
+    ],
     "BusyBitTable": [
       false,
       false,
@@ -455,10 +484,10 @@
       false,
       false,
       false,
-      false,
-      false,
-      false,
-      false,
+      true,
+      true,
+      true,
+      true,
       false,
       false,
       false,
@@ -489,10 +518,6 @@
       false
     ],
     "DecodedPCs": [
-      0,
-      1,
-      2,
-      3,
       4,
       5,
       6,
@@ -501,10 +526,6 @@
     "Exception": false,
     "ExceptionPC": 0,
     "FreeList": [
-      32,
-      33,
-      34,
-      35,
       36,
       37,
       38,
@@ -534,7 +555,52 @@
       62,
       63
     ],
-    "IntegerQueue": [],
+    "IntegerQueue": [
+      {
+        "DestRegister": 32,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 0
+      },
+      {
+        "DestRegister": 33,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 1
+      },
+      {
+        "DestRegister": 34,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 2
+      },
+      {
+        "DestRegister": 35,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 3
+      }
+    ],
     "PC": 8,
     "PhysicalRegisterFile": [
       0,
@@ -604,10 +670,10 @@
     ],
     "RegisterMapTable": [
       0,
-      1,
-      2,
-      3,
-      4,
+      32,
+      33,
+      34,
+      35,
       5,
       6,
       7,
@@ -638,7 +704,64 @@
     ]
   },
   {
-    "ActiveList": [],
+    "ActiveList": [
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 1,
+        "OldDestination": 1,
+        "PC": 0
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 2,
+        "OldDestination": 2,
+        "PC": 1
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 3,
+        "OldDestination": 3,
+        "PC": 2
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 4,
+        "OldDestination": 4,
+        "PC": 3
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 5,
+        "OldDestination": 5,
+        "PC": 4
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 6,
+        "OldDestination": 6,
+        "PC": 5
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 8,
+        "OldDestination": 8,
+        "PC": 6
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 9,
+        "OldDestination": 9,
+        "PC": 7
+      }
+    ],
     "BusyBitTable": [
       false,
       false,
@@ -672,14 +795,14 @@
       false,
       false,
       false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
       false,
       false,
       false,
@@ -706,14 +829,6 @@
       false
     ],
     "DecodedPCs": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
       8,
       9,
       10
@@ -721,14 +836,6 @@
     "Exception": false,
     "ExceptionPC": 0,
     "FreeList": [
-      32,
-      33,
-      34,
-      35,
-      36,
-      37,
-      38,
-      39,
       40,
       41,
       42,
@@ -754,7 +861,96 @@
       62,
       63
     ],
-    "IntegerQueue": [],
+    "IntegerQueue": [
+      {
+        "DestRegister": 32,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 0
+      },
+      {
+        "DestRegister": 33,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 1
+      },
+      {
+        "DestRegister": 34,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 2
+      },
+      {
+        "DestRegister": 35,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 10,
+        "OpCode": "add",
+        "PC": 3
+      },
+      {
+        "DestRegister": 36,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 7,
+        "OpCode": "add",
+        "PC": 4
+      },
+      {
+        "DestRegister": 37,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 8,
+        "OpCode": "add",
+        "PC": 5
+      },
+      {
+        "DestRegister": 38,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 12,
+        "OpCode": "add",
+        "PC": 6
+      },
+      {
+        "DestRegister": 39,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 29,
+        "OpCode": "add",
+        "PC": 7
+      }
+    ],
     "PC": 11,
     "PhysicalRegisterFile": [
       0,
@@ -824,15 +1020,15 @@
     ],
     "RegisterMapTable": [
       0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
       7,
-      8,
-      9,
+      38,
+      39,
       10,
       11,
       12,

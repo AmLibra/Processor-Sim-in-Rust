@@ -421,7 +421,36 @@
     ]
   },
   {
-    "ActiveList": [],
+    "ActiveList": [
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 1,
+        "OldDestination": 1,
+        "PC": 0
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 2,
+        "OldDestination": 2,
+        "PC": 1
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 3,
+        "OldDestination": 3,
+        "PC": 2
+      },
+      {
+        "Done": false,
+        "Exception": false,
+        "LogicalDestination": 4,
+        "OldDestination": 4,
+        "PC": 3
+      }
+    ],
     "BusyBitTable": [
       false,
       false,
@@ -455,10 +484,10 @@
       false,
       false,
       false,
-      false,
-      false,
-      false,
-      false,
+      true,
+      true,
+      true,
+      true,
       false,
       false,
       false,
@@ -489,10 +518,6 @@
       false
     ],
     "DecodedPCs": [
-      0,
-      1,
-      2,
-      3,
       4,
       5,
       6
@@ -500,10 +525,6 @@
     "Exception": false,
     "ExceptionPC": 0,
     "FreeList": [
-      32,
-      33,
-      34,
-      35,
       36,
       37,
       38,
@@ -533,7 +554,52 @@
       62,
       63
     ],
-    "IntegerQueue": [],
+    "IntegerQueue": [
+      {
+        "DestRegister": 32,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 1,
+        "OpCode": "add",
+        "PC": 0
+      },
+      {
+        "DestRegister": 33,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 2,
+        "OpCode": "add",
+        "PC": 1
+      },
+      {
+        "DestRegister": 34,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 3,
+        "OpCode": "add",
+        "PC": 2
+      },
+      {
+        "DestRegister": 35,
+        "OpAIsReady": true,
+        "OpARegTag": 0,
+        "OpAValue": 0,
+        "OpBIsReady": true,
+        "OpBRegTag": 0,
+        "OpBValue": 4,
+        "OpCode": "add",
+        "PC": 3
+      }
+    ],
     "PC": 7,
     "PhysicalRegisterFile": [
       0,
@@ -603,10 +669,10 @@
     ],
     "RegisterMapTable": [
       0,
-      1,
-      2,
-      3,
-      4,
+      32,
+      33,
+      34,
+      35,
       5,
       6,
       7,

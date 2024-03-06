@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./build.sh
+set -e # Exit on error
 
 for tnum in ./given_tests/*
 do
