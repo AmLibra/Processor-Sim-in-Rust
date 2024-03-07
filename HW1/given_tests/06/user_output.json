@@ -863,50 +863,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
-        "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 1
-      },
-      {
-        "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 2
-      },
-      {
-        "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 3
-      },
-      {
         "DestRegister": 36,
         "OpAIsReady": true,
         "OpARegTag": 0,

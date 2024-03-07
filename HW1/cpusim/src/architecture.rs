@@ -1,6 +1,8 @@
 use serde::Serialize;
 
-use crate::arch_modules::{ActiveListEntry, DecodedInstruction, Instruction, IntegerQueueEntry};
+use crate::arch_modules::{
+    ActiveListEntry, ALU, DecodedInstruction, Instruction, IntegerQueueEntry,
+};
 
 const INITIAL_PC: u64 = 0;
 const INITIAL_EXCEPTION_PC: u64 = 0;
@@ -12,6 +14,7 @@ const REGISTER_MAP_TABLE_SIZE: u8 = 32;
 const START_OF_FREE_REGISTER_LIST: u8 = 32;
 const END_OF_FREE_REGISTER_LIST: u8 = 64;
 const DECODED_BUFFER_SIZE: usize = 4;
+const ALU_COUNT: usize = 4;
 const INITIAL_EXCEPTION_STATE: bool = false;
 
 #[derive(Clone, Serialize)]
@@ -32,6 +35,8 @@ pub struct ProcessorState {
     free_list: Vec<u8>, // FIFO queue
     #[serde(rename = "IntegerQueue")]
     integer_queue: Vec<IntegerQueueEntry>,
+    #[serde(skip_serializing)] // skip serializing ALUs
+    alus: Vec<ALU>,
     #[serde(rename = "PC")]
     pc: u64,
     #[serde(rename = "PhysicalRegisterFile")]
@@ -51,6 +56,7 @@ impl ProcessorState {
             exception_pc: INITIAL_EXCEPTION_PC,
             free_list: (START_OF_FREE_REGISTER_LIST..END_OF_FREE_REGISTER_LIST).collect(),
             integer_queue: Vec::with_capacity(INTEGER_QUEUE_SIZE),
+            alus: vec![ALU::new(); ALU_COUNT],
             pc: INITIAL_PC,
             physical_register_file: vec![0; PHYSICAL_REGISTER_FILE_SIZE],
             register_map_table: (0..REGISTER_MAP_TABLE_SIZE).collect(),
@@ -71,12 +77,16 @@ impl ProcessorState {
 
     pub fn propagate(&self, instructions: &mut Vec<Instruction>) -> ProcessorState {
         let mut next_state = self.clone();
+        next_state.issue();
         let backpressure = next_state.rename_and_dispatch(&self);
         next_state.fetch_and_decode(instructions, backpressure);
         return next_state;
     }
 
-    /// Fetches and decodes the next four instructions from the instruction queue.
+    /// STAGE 1: Fetches and decodes the next four instructions from the instruction queue.
+    /// 1. If backpressure is applied or an exception occurs, the fetch and decode process is halted.
+    /// 2. If the instruction queue is empty, the process is also halted.
+    /// 3. Otherwise, the next up to four instructions are fetched and decoded.
     fn fetch_and_decode(&mut self, instructions: &mut Vec<Instruction>, backpressure: bool) {
         // Apply backpressure or handle exception by not fetching new instructions
         if backpressure || self.exception {
@@ -93,7 +103,12 @@ impl ProcessorState {
         }
     }
 
-    /// Performs the rename and dispatch process for the decoded instructions.
+    /// STAGE 2: Performs the rename and dispatch process for the decoded instructions.
+    /// 1. Checks if there are enough resources to process the next four instructions.
+    /// 2. If there are enough resources, renames the destination registers and dispatches the
+    /// instructions to the integer queue and active list as per the R10000 CPU paper.
+    /// 3. If there are not enough resources, backpressure is applied.
+    /// 4. The integer queue is always listening for forwarding paths from the ALUs.
     fn rename_and_dispatch(&mut self, current_state: &ProcessorState) -> bool {
         if !self.has_sufficient_resources() {
             return true; // Apply backpressure if resources are insufficient.
@@ -102,10 +117,80 @@ impl ProcessorState {
         for decoded_instruction in &current_state.decoded_instructions {
             self.add_active_list_entry(decoded_instruction);
             self.add_integer_queue_entry(current_state, decoded_instruction);
+            self.poll_forwarding_paths();
         }
 
         self.clear_decoded_instructions();
         false // No backpressure since instructions were successfully renamed and dispatched.
+    }
+
+    /// STAGE 3: Performs the issue process for the decoded instructions.
+    /// 1. Checks if the instruction is ready to be issued, prioritizing the oldest instructions,
+    /// (i.e., the instructions with smaller PCs).
+    /// 2. If ready, issues the instruction to an available ALU.
+    /// 3. The integer queue is always listening for forwarding paths from the ALUs.
+    fn issue(&mut self) {
+        for alu in self.alus.iter_mut() {
+            alu.execute();
+        }
+
+        self.poll_forwarding_paths();
+
+        for _ in 0..ALU_COUNT {
+            self.issue_instruction();
+        }
+    }
+
+    /// Issues the oldest ready instruction to an available ALU.
+    fn issue_instruction(&mut self) {
+        let oldest_ready_instruction = self.find_oldest_ready_instruction();
+        if let Some(entry) = oldest_ready_instruction {
+            for alu in self.alus.iter_mut() {
+                if !alu.is_busy() {
+                    alu.latch(entry.clone());
+                    break;
+                }
+            }
+        }
+    }
+
+    /// Finds the oldest instruction in the integer queue that is ready to be issued.
+    fn find_oldest_ready_instruction(&mut self) -> Option<IntegerQueueEntry> {
+        let mut sorted_queue = self.integer_queue.clone();
+        sorted_queue.sort_by(|a, b| a.pc.cmp(&b.pc));
+
+        for entry in sorted_queue {
+            if entry.is_ready() {
+                self.integer_queue.retain(|x| x.pc != entry.pc);
+                return Some(entry);
+            }
+        }
+        None
+    }
+
+    /// The integer queue polls the forwarding paths from the ALUs to check if any values have been
+    /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
+    fn poll_forwarding_paths(&mut self) {
+        for alu in self.alus.clone().iter() {
+            if alu.forwarding {
+                self.check_forwarded_values(alu.forwarding_reg, alu.forwarding_value);
+            }
+        }
+    }
+
+    /// The integer queue checks if any of its entries are ready to be issued,
+    /// and if so, updates the entries accordingly.
+    fn check_forwarded_values(&mut self, forwarding_reg: u8, forwarding_value: u64) {
+        for entry in self.integer_queue.iter_mut() {
+            if !entry.op_a_is_ready && (entry.op_a_reg_tag == forwarding_reg) {
+                entry.op_a_is_ready = true;
+                entry.op_a_value = forwarding_value;
+            }
+            if !entry.op_b_is_ready && (entry.op_b_reg_tag == forwarding_reg) {
+                entry.op_b_is_ready = true;
+                entry.op_b_value = forwarding_value;
+            }
+        }
     }
 
     /// Pushes an integer queue entry of the given decoded instruction to the integer queue.
@@ -120,9 +205,9 @@ impl ProcessorState {
             decoded_instruction.op_b_reg_tag,
             decoded_instruction.immediate,
         );
+
         let physical_dest_register =
             self.map_destination_register(decoded_instruction.logical_destination);
-        self.set_busy_bit(physical_dest_register);
 
         self.integer_queue.push(IntegerQueueEntry::new(
             physical_dest_register,
@@ -197,10 +282,11 @@ impl ProcessorState {
 
     /// Gets the next free register from the free list.
     /// The free list is a FIFO queue.
-    /// This also updates the map table with the new physical register.
+    /// This also updates the map table with the new physical register and sets the busy bit.
     fn map_destination_register(&mut self, logical_dest: u8) -> u8 {
         let physical_dest_register = self.get_next_free_register();
         self.register_map_table[logical_dest as usize] = physical_dest_register;
+        self.set_busy_bit(physical_dest_register);
         physical_dest_register
     }
 

@@ -864,50 +864,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
-        "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 2,
-        "OpCode": "add",
-        "PC": 1
-      },
-      {
-        "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 3,
-        "OpCode": "add",
-        "PC": 2
-      },
-      {
-        "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 4,
-        "OpCode": "add",
-        "PC": 3
-      },
-      {
         "DestRegister": 36,
         "OpAIsReady": true,
         "OpARegTag": 0,
@@ -1239,61 +1195,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
-        "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 2,
-        "OpCode": "add",
-        "PC": 1
-      },
-      {
-        "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 3,
-        "OpCode": "add",
-        "PC": 2
-      },
-      {
-        "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 4,
-        "OpCode": "add",
-        "PC": 3
-      },
-      {
-        "DestRegister": 36,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 4
-      },
-      {
         "DestRegister": 37,
         "OpAIsReady": false,
         "OpARegTag": 36,
@@ -1342,9 +1243,9 @@
         "OpAIsReady": false,
         "OpARegTag": 40,
         "OpAValue": 0,
-        "OpBIsReady": false,
+        "OpBIsReady": true,
         "OpBRegTag": 32,
-        "OpBValue": 0,
+        "OpBValue": 1,
         "OpCode": "add",
         "PC": 9
       },
@@ -1682,72 +1583,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
-        "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 2,
-        "OpCode": "add",
-        "PC": 1
-      },
-      {
-        "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 3,
-        "OpCode": "add",
-        "PC": 2
-      },
-      {
-        "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 4,
-        "OpCode": "add",
-        "PC": 3
-      },
-      {
-        "DestRegister": 36,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 4
-      },
-      {
-        "DestRegister": 37,
-        "OpAIsReady": false,
-        "OpARegTag": 36,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 5
-      },
-      {
         "DestRegister": 38,
         "OpAIsReady": false,
         "OpARegTag": 37,
@@ -1785,9 +1620,9 @@
         "OpAIsReady": false,
         "OpARegTag": 40,
         "OpAValue": 0,
-        "OpBIsReady": false,
+        "OpBIsReady": true,
         "OpBRegTag": 32,
-        "OpBValue": 0,
+        "OpBValue": 1,
         "OpCode": "add",
         "PC": 9
       },
@@ -2193,83 +2028,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
-        "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 2,
-        "OpCode": "add",
-        "PC": 1
-      },
-      {
-        "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 3,
-        "OpCode": "add",
-        "PC": 2
-      },
-      {
-        "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 4,
-        "OpCode": "add",
-        "PC": 3
-      },
-      {
-        "DestRegister": 36,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 4
-      },
-      {
-        "DestRegister": 37,
-        "OpAIsReady": false,
-        "OpARegTag": 36,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 10,
-        "OpCode": "add",
-        "PC": 5
-      },
-      {
-        "DestRegister": 38,
-        "OpAIsReady": false,
-        "OpARegTag": 37,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 100,
-        "OpCode": "add",
-        "PC": 6
-      },
-      {
         "DestRegister": 39,
         "OpAIsReady": false,
         "OpARegTag": 38,
@@ -2296,9 +2054,9 @@
         "OpAIsReady": false,
         "OpARegTag": 40,
         "OpAValue": 0,
-        "OpBIsReady": false,
+        "OpBIsReady": true,
         "OpBRegTag": 32,
-        "OpBValue": 0,
+        "OpBValue": 1,
         "OpCode": "add",
         "PC": 9
       },

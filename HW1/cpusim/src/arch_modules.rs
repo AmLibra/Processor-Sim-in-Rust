@@ -81,6 +81,104 @@ impl IntegerQueueEntry {
             pc,
         }
     }
+
+    pub fn is_ready(&self) -> bool {
+        self.op_a_is_ready && self.op_b_is_ready
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct ALUEntry {
+    dest_register: u8,
+    op_a_value: u64,
+    op_b_value: u64,
+    op_code: String,
+    pc: u64,
+}
+
+impl ALUEntry {
+    pub fn new(
+        dest_register: u8,
+        op_a_value: u64,
+        op_b_value: u64,
+        op_code: String,
+        pc: u64,
+    ) -> ALUEntry {
+        ALUEntry {
+            dest_register,
+            op_a_value,
+            op_b_value,
+            op_code,
+            pc,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct ALU {
+    stage1: Option<ALUEntry>,
+    stage2: Option<ALUEntry>,
+    pub forwarding: bool,
+    pub forwarding_reg: u8,
+    pub forwarding_value: u64,
+}
+
+impl ALU {
+    pub fn new() -> ALU {
+        ALU {
+            stage1: None,
+            stage2: None,
+            forwarding: false,
+            forwarding_reg: 0,
+            forwarding_value: 0,
+        }
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.stage1.is_some()
+    }
+
+    pub fn latch(&mut self, entry: IntegerQueueEntry) {
+        if !self.is_busy() {
+            self.stage1 = Some(ALUEntry::new(
+                entry.dest_register,
+                entry.op_a_value,
+                entry.op_b_value,
+                entry.op_code,
+                entry.pc,
+            ));
+        } else {
+            panic!("ALU stage 1 is already occupied");
+        }
+    }
+
+    pub fn execute(&mut self) {
+        if self.stage2.is_some() {
+            self.stage2 = None;
+        }
+        if self.stage1.is_some() {
+            self.stage2 = self.stage1.take();
+            self.update_forwarding(); // Update forwarding values directly after stage 2 is occupied
+        }
+    }
+
+    fn compute(&mut self, stage1_entry: &ALUEntry) -> u64 {
+        match stage1_entry.op_code.as_str() {
+            "add" => stage1_entry.op_a_value + stage1_entry.op_b_value,
+            "sub" => stage1_entry.op_a_value - stage1_entry.op_b_value,
+            "mulu" => stage1_entry.op_a_value * stage1_entry.op_b_value,
+            "divu" => stage1_entry.op_a_value / stage1_entry.op_b_value,
+            "remu" => stage1_entry.op_a_value % stage1_entry.op_b_value,
+            _ => panic!("Invalid op code"),
+        }
+    }
+
+    fn update_forwarding(&mut self) {
+        let stage2_entry = self.stage2.as_ref().unwrap().clone();
+        self.forwarding = true;
+        self.forwarding_reg = stage2_entry.dest_register;
+        self.forwarding_value = self.compute(&stage2_entry);
+    }
 }
 
 #[derive(Clone)]

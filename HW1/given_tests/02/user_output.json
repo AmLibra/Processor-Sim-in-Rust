@@ -864,17 +864,6 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 32,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
-        "OpBValue": 1,
-        "OpCode": "add",
-        "PC": 0
-      },
-      {
         "DestRegister": 33,
         "OpAIsReady": false,
         "OpARegTag": 32,
