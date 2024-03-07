@@ -100,7 +100,7 @@ impl ProcessorState {
         }
 
         for decoded_instruction in &current_state.decoded_instructions {
-            self.add_active_list_entry(current_state, decoded_instruction);
+            self.add_active_list_entry(decoded_instruction);
             self.add_integer_queue_entry(current_state, decoded_instruction);
         }
 
@@ -114,13 +114,16 @@ impl ProcessorState {
         current_state: &ProcessorState,
         decoded_instruction: &DecodedInstruction,
     ) {
-        let physical_dest_register = self.map_destination_register(decoded_instruction);
         let (physical_op_a_reg_tag, op_a_ready) =
-            current_state.get_operand_info(decoded_instruction.op_a_reg_tag, false);
-        let (physical_op_b_reg_tag, op_b_ready) = current_state.get_operand_info(
+            self.get_operand_info(decoded_instruction.op_a_reg_tag, false);
+        let (physical_op_b_reg_tag, op_b_ready) = self.get_operand_info(
             decoded_instruction.op_b_reg_tag,
             decoded_instruction.immediate,
         );
+        let physical_dest_register =
+            self.map_destination_register(decoded_instruction.logical_destination);
+        self.set_busy_bit(physical_dest_register);
+
         self.integer_queue.push(IntegerQueueEntry::new(
             physical_dest_register,
             op_a_ready,
@@ -132,16 +135,11 @@ impl ProcessorState {
             decoded_instruction.op_code.clone(),
             decoded_instruction.pc,
         ));
-        self.set_busy_bit(physical_dest_register);
     }
 
     /// Pushes an active list entry of the given decoded instruction to the active list.
-    fn add_active_list_entry(
-        &mut self,
-        current_state: &ProcessorState,
-        decoded_instruction: &DecodedInstruction,
-    ) {
-        let old_dest_register = current_state.map_register(decoded_instruction.logical_destination);
+    fn add_active_list_entry(&mut self, decoded_instruction: &DecodedInstruction) {
+        let old_dest_register = self.map_register(decoded_instruction.logical_destination);
         self.active_list.push(ActiveListEntry::new(
             false,
             false,
@@ -200,10 +198,15 @@ impl ProcessorState {
     /// Gets the next free register from the free list.
     /// The free list is a FIFO queue.
     /// This also updates the map table with the new physical register.
-    fn map_destination_register(&mut self, decoded_instruction: &DecodedInstruction) -> u8 {
-        self.register_map_table[decoded_instruction.logical_destination as usize] =
-            self.free_list.remove(0);
-        return self.map_register(decoded_instruction.logical_destination);
+    fn map_destination_register(&mut self, logical_dest: u8) -> u8 {
+        let physical_dest_register = self.get_next_free_register();
+        self.register_map_table[logical_dest as usize] = physical_dest_register;
+        physical_dest_register
+    }
+
+    /// Gets the next free register from the free list.
+    fn get_next_free_register(&mut self) -> u8 {
+        self.free_list.remove(0)
     }
 
     /// Checks if busy bit is set for a register.

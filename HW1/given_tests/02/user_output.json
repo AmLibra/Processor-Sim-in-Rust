@@ -433,21 +433,21 @@
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 32,
         "PC": 1
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 33,
         "PC": 2
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 34,
         "PC": 3
       }
     ],
@@ -569,8 +569,8 @@
       },
       {
         "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 32,
         "OpAValue": 0,
         "OpBIsReady": true,
         "OpBRegTag": 0,
@@ -580,22 +580,22 @@
       },
       {
         "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 33,
         "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
+        "OpBIsReady": false,
+        "OpBRegTag": 33,
         "OpBValue": 0,
         "OpCode": "add",
         "PC": 2
       },
       {
         "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 34,
         "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
+        "OpBIsReady": false,
+        "OpBRegTag": 34,
         "OpBValue": 0,
         "OpCode": "add",
         "PC": 3
@@ -716,21 +716,21 @@
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 32,
         "PC": 1
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 33,
         "PC": 2
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 0,
+        "OldDestination": 34,
         "PC": 3
       },
       {
@@ -744,21 +744,21 @@
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 35,
+        "OldDestination": 36,
         "PC": 5
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 35,
+        "OldDestination": 37,
         "PC": 6
       },
       {
         "Done": false,
         "Exception": false,
         "LogicalDestination": 0,
-        "OldDestination": 35,
+        "OldDestination": 38,
         "PC": 7
       }
     ],
@@ -876,8 +876,8 @@
       },
       {
         "DestRegister": 33,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 32,
         "OpAValue": 0,
         "OpBIsReady": true,
         "OpBRegTag": 0,
@@ -887,22 +887,22 @@
       },
       {
         "DestRegister": 34,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 33,
         "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
+        "OpBIsReady": false,
+        "OpBRegTag": 33,
         "OpBValue": 0,
         "OpCode": "add",
         "PC": 2
       },
       {
         "DestRegister": 35,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
+        "OpAIsReady": false,
+        "OpARegTag": 34,
         "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 0,
+        "OpBIsReady": false,
+        "OpBRegTag": 34,
         "OpBValue": 0,
         "OpCode": "add",
         "PC": 3
@@ -921,7 +921,7 @@
       {
         "DestRegister": 37,
         "OpAIsReady": false,
-        "OpARegTag": 35,
+        "OpARegTag": 36,
         "OpAValue": 0,
         "OpBIsReady": true,
         "OpBRegTag": 0,
@@ -932,10 +932,10 @@
       {
         "DestRegister": 38,
         "OpAIsReady": false,
-        "OpARegTag": 35,
+        "OpARegTag": 37,
         "OpAValue": 0,
         "OpBIsReady": false,
-        "OpBRegTag": 35,
+        "OpBRegTag": 37,
         "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 6
@@ -943,10 +943,10 @@
       {
         "DestRegister": 39,
         "OpAIsReady": false,
-        "OpARegTag": 35,
+        "OpARegTag": 38,
         "OpAValue": 0,
         "OpBIsReady": false,
-        "OpBRegTag": 35,
+        "OpBRegTag": 38,
         "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 7
