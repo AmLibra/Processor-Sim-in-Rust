@@ -114,10 +114,10 @@ impl ProcessorState {
             return true; // Apply backpressure if resources are insufficient.
         }
 
+        self.poll_forwarding_paths();
         for decoded_instruction in &current_state.decoded_instructions {
             self.add_active_list_entry(decoded_instruction);
             self.add_integer_queue_entry(current_state, decoded_instruction);
-            self.poll_forwarding_paths();
         }
 
         self.clear_decoded_instructions();
