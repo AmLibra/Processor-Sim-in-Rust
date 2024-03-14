@@ -6,9 +6,9 @@ const IMMEDIATE_OP_CODES: [&str; 1] = ["addi"];
 #[derive(Clone, Serialize)]
 pub struct ActiveListEntry {
     #[serde(rename = "Done")]
-    pub done: bool,
+    pub is_done: bool,
     #[serde(rename = "Exception")]
-    pub exception: bool,
+    pub is_exception: bool,
     #[serde(rename = "LogicalDestination")]
     pub logical_destination: u8,
     #[serde(rename = "OldDestination")]
@@ -26,8 +26,8 @@ impl ActiveListEntry {
         pc: u64,
     ) -> ActiveListEntry {
         ActiveListEntry {
-            done,
-            exception,
+            is_done: done,
+            is_exception: exception,
             logical_destination,
             old_destination,
             pc,
@@ -118,9 +118,11 @@ impl ALUEntry {
 pub struct ALU {
     stage1: Option<ALUEntry>,
     stage2: Option<ALUEntry>,
-    pub forwarding: bool,
+    pub is_forwarding: bool,
     pub forwarding_reg: u8,
     pub forwarding_value: u64,
+    pub forwarding_pc: u64,
+    pub forwarding_exception: bool,
 }
 
 impl ALU {
@@ -128,9 +130,11 @@ impl ALU {
         ALU {
             stage1: None,
             stage2: None,
-            forwarding: false,
+            is_forwarding: false,
             forwarding_reg: 0,
             forwarding_value: 0,
+            forwarding_pc: 0,
+            forwarding_exception: false,
         }
     }
 
@@ -175,8 +179,9 @@ impl ALU {
 
     fn update_forwarding(&mut self) {
         let stage2_entry = self.stage2.as_ref().unwrap().clone();
-        self.forwarding = true;
+        self.is_forwarding = true;
         self.forwarding_reg = stage2_entry.dest_register;
+        self.forwarding_pc = stage2_entry.pc;
         self.forwarding_value = self.compute(&stage2_entry);
     }
 }

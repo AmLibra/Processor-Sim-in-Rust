@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Serialize;
 
 use crate::arch_modules::{
@@ -63,20 +65,26 @@ impl ProcessorState {
         }
     }
 
+    /// Returns true if the active list is empty.
     pub fn active_list_is_empty(&self) -> bool {
         self.active_list.is_empty()
     }
 
+    /// Logs the current state of the processor to the state log.
     pub fn log(&self, state_log: &mut Vec<ProcessorState>) {
         state_log.push(self.clone());
     }
 
+    /// Latches the current state of the processor to the given state.
     pub fn latch(&mut self, new_state: &ProcessorState) {
         *self = new_state.clone();
     }
 
+    /// Propagates the processor state by one cycle.
     pub fn propagate(&self, instructions: &mut Vec<Instruction>) -> ProcessorState {
         let mut next_state = self.clone();
+        next_state.poll_forwarding_paths();
+        next_state.commit(&self);
         next_state.issue();
         let backpressure = next_state.rename_and_dispatch(&self);
         next_state.fetch_and_decode(instructions, backpressure);
@@ -114,7 +122,6 @@ impl ProcessorState {
             return true; // Apply backpressure if resources are insufficient.
         }
 
-        self.poll_forwarding_paths();
         for decoded_instruction in &current_state.decoded_instructions {
             self.add_active_list_entry(decoded_instruction);
             self.add_integer_queue_entry(current_state, decoded_instruction);
@@ -130,16 +137,77 @@ impl ProcessorState {
     /// 2. If ready, issues the instruction to an available ALU.
     /// 3. The integer queue is always listening for forwarding paths from the ALUs.
     fn issue(&mut self) {
+        //self.poll_forwarding_paths();
         for alu in self.alus.iter_mut() {
             alu.execute();
         }
-
-        self.poll_forwarding_paths();
-
         for _ in 0..ALU_COUNT {
             self.issue_instruction();
         }
     }
+
+    /// STAGE 4: Commits the results of the executed instructions to the physical register file.
+    /// 1. Mark instructions as done or exception on receiving the results from the ALU
+    /// forwarding paths.
+    /// 2. Respectively, retire or rollback the instructions in the active list depending on the
+    /// results.
+    /// 3. Recycle the physical registers of the retired instructions, pushing them back to the
+    /// free list.
+    // During each cycle, the Commit unit scans the Active list in program order and picks instructions
+    // for retirement until any of the following happens:
+    //  four instructions are already picked,
+    //  an instruction is met that is not completed yet, or
+    //  an instruction is met that is completed but triggers an exception. In this case, the processor will
+    // enter the Exception mode in the next cycle.
+    // The Commit unit then removes instructions picked for retirement from the Active list and accord-
+    // ingly frees their old destination physical register.
+    fn commit(&mut self, current_state: &ProcessorState) {
+        let mut retired_instructions = 0;
+        let mut to_commit: HashMap<u64, (u8, u64)> = HashMap::new();
+        // Update the active list using the ALU forwarding paths
+
+        for alu in current_state.alus.iter() {
+            if alu.is_forwarding {
+                for entry in self.active_list.iter_mut() {
+                    if entry.pc == alu.forwarding_pc {
+                        if alu.forwarding_exception {
+                            entry.is_exception = true;
+                        } else {
+                            entry.is_done = true;
+                            to_commit.insert(entry.pc, (alu.forwarding_reg, alu.forwarding_value));
+                        }
+                    }
+                }
+            }
+        }
+        println!("{:?}", to_commit);
+        for (_, (reg,_)) in &to_commit {
+            self.set_free(*reg);
+        }
+
+        for entry in current_state.active_list.iter() {
+            if retired_instructions == DECODED_BUFFER_SIZE {
+                break; // Stop committing if four instructions are already picked.
+            }
+            if entry.is_done {
+                retired_instructions += 1;
+                println!("{:?}", entry.pc);
+                let reg_to_write = to_commit.get(&entry.pc).unwrap();
+                self.physical_register_file[reg_to_write.0 as usize] = reg_to_write.1;
+            } else if entry.is_exception {
+                self.exception = true;
+                self.exception_pc = entry.pc;
+                break;
+            } else {
+                return; // Stop committing if an instruction is not completed yet.
+            }
+        }
+        self.active_list.retain(|x| !x.is_done);
+    }
+
+    /// =============================================== ///
+    /// --------------- Helper Functions -------------- ///
+    /// =============================================== ///
 
     /// Issues the oldest ready instruction to an available ALU.
     fn issue_instruction(&mut self) {
@@ -172,7 +240,7 @@ impl ProcessorState {
     /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
     fn poll_forwarding_paths(&mut self) {
         for alu in self.alus.clone().iter() {
-            if alu.forwarding {
+            if alu.is_forwarding {
                 self.check_forwarded_values(alu.forwarding_reg, alu.forwarding_value);
             }
         }
@@ -286,7 +354,7 @@ impl ProcessorState {
     fn map_destination_register(&mut self, logical_dest: u8) -> u8 {
         let physical_dest_register = self.get_next_free_register();
         self.register_map_table[logical_dest as usize] = physical_dest_register;
-        self.set_busy_bit(physical_dest_register);
+        self.set_busy(physical_dest_register);
         physical_dest_register
     }
 
@@ -301,7 +369,12 @@ impl ProcessorState {
     }
 
     /// Sets the busy bit for a register.
-    fn set_busy_bit(&mut self, register: u8) {
+    fn set_busy(&mut self, register: u8) {
         self.busy_bit_table[register as usize] = true;
+    }
+
+    /// Unsets the busy bit for a register.
+    fn set_free(&mut self, register: u8) {
+        self.busy_bit_table[register as usize] = false;
     }
 }

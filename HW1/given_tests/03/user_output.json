@@ -1344,28 +1344,28 @@
   {
     "ActiveList": [
       {
-        "Done": false,
+        "Done": true,
         "Exception": false,
         "LogicalDestination": 0,
         "OldDestination": 0,
         "PC": 0
       },
       {
-        "Done": false,
+        "Done": true,
         "Exception": false,
         "LogicalDestination": 1,
         "OldDestination": 1,
         "PC": 1
       },
       {
-        "Done": false,
+        "Done": true,
         "Exception": false,
         "LogicalDestination": 2,
         "OldDestination": 2,
         "PC": 2
       },
       {
-        "Done": false,
+        "Done": true,
         "Exception": false,
         "LogicalDestination": 3,
         "OldDestination": 3,
@@ -1489,10 +1489,10 @@
       false,
       false,
       false,
-      true,
-      true,
-      true,
-      true,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
       true,
@@ -1551,45 +1551,45 @@
     "IntegerQueue": [
       {
         "DestRegister": 40,
-        "OpAIsReady": false,
+        "OpAIsReady": true,
         "OpARegTag": 32,
-        "OpAValue": 0,
-        "OpBIsReady": true,
+        "OpAValue": 10,
+        "OpBIsReady": false,
         "OpBRegTag": 36,
-        "OpBValue": 50,
+        "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 8
       },
       {
         "DestRegister": 41,
-        "OpAIsReady": false,
+        "OpAIsReady": true,
         "OpARegTag": 33,
-        "OpAValue": 0,
-        "OpBIsReady": true,
+        "OpAValue": 20,
+        "OpBIsReady": false,
         "OpBRegTag": 37,
-        "OpBValue": 60,
+        "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 9
       },
       {
         "DestRegister": 42,
-        "OpAIsReady": false,
+        "OpAIsReady": true,
         "OpARegTag": 34,
-        "OpAValue": 0,
-        "OpBIsReady": true,
+        "OpAValue": 30,
+        "OpBIsReady": false,
         "OpBRegTag": 38,
-        "OpBValue": 70,
+        "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 10
       },
       {
         "DestRegister": 43,
-        "OpAIsReady": false,
+        "OpAIsReady": true,
         "OpARegTag": 35,
-        "OpAValue": 0,
-        "OpBIsReady": true,
+        "OpAValue": 40,
+        "OpBIsReady": false,
         "OpBRegTag": 39,
-        "OpBValue": 80,
+        "OpBValue": 0,
         "OpCode": "mulu",
         "PC": 11
       },
@@ -1745,62 +1745,6 @@
       {
         "Done": false,
         "Exception": false,
-        "LogicalDestination": 0,
-        "OldDestination": 0,
-        "PC": 0
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 1,
-        "OldDestination": 1,
-        "PC": 1
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 2,
-        "OldDestination": 2,
-        "PC": 2
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 3,
-        "OldDestination": 3,
-        "PC": 3
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 9,
-        "OldDestination": 9,
-        "PC": 4
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 10,
-        "OldDestination": 10,
-        "PC": 5
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 11,
-        "OldDestination": 11,
-        "PC": 6
-      },
-      {
-        "Done": false,
-        "Exception": false,
-        "LogicalDestination": 12,
-        "OldDestination": 12,
-        "PC": 7
-      },
-      {
-        "Done": false,
-        "Exception": false,
         "LogicalDestination": 4,
         "OldDestination": 4,
         "PC": 8
@@ -1916,14 +1860,14 @@
       false,
       false,
       false,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
       true,
@@ -1972,50 +1916,6 @@
       63
     ],
     "IntegerQueue": [
-      {
-        "DestRegister": 40,
-        "OpAIsReady": false,
-        "OpARegTag": 32,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 36,
-        "OpBValue": 50,
-        "OpCode": "mulu",
-        "PC": 8
-      },
-      {
-        "DestRegister": 41,
-        "OpAIsReady": false,
-        "OpARegTag": 33,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 37,
-        "OpBValue": 60,
-        "OpCode": "mulu",
-        "PC": 9
-      },
-      {
-        "DestRegister": 42,
-        "OpAIsReady": false,
-        "OpARegTag": 34,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 38,
-        "OpBValue": 70,
-        "OpCode": "mulu",
-        "PC": 10
-      },
-      {
-        "DestRegister": 43,
-        "OpAIsReady": false,
-        "OpARegTag": 35,
-        "OpAValue": 0,
-        "OpBIsReady": true,
-        "OpBRegTag": 39,
-        "OpBValue": 80,
-        "OpCode": "mulu",
-        "PC": 11
-      },
       {
         "DestRegister": 44,
         "OpAIsReady": false,
