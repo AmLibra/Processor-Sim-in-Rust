@@ -8,6 +8,8 @@ use crate::arch_modules::Instruction;
 mod arch_modules;
 pub mod architecture;
 
+const MAX_CYCLES: usize = 50;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut instructions = parse_input()?;
 
@@ -18,8 +20,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Log the initial state
     processor_state.log(&mut state_log);
 
-    while !(instructions.is_empty()) {
-        //TODO: also check if the active list is empty
+    while !(instructions.is_empty() && processor_state.active_list_is_empty())
+        && (state_log.len() < MAX_CYCLES)
+    {
         let new_processor_state = processor_state.propagate(&mut instructions);
         processor_state.latch(&new_processor_state);
         processor_state.log(&mut state_log);

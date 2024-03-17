@@ -3,7 +3,7 @@ use serde::Serialize;
 const ALLOWED_OP_CODES: [&str; 5] = ["add", "sub", "mulu", "divu", "remu"];
 const IMMEDIATE_OP_CODES: [&str; 1] = ["addi"];
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct ActiveListEntry {
     #[serde(rename = "Done")]
     pub is_done: bool,
@@ -35,7 +35,7 @@ impl ActiveListEntry {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct IntegerQueueEntry {
     #[serde(rename = "DestRegister")]
     pub dest_register: u8,
@@ -87,7 +87,7 @@ impl IntegerQueueEntry {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct ALUEntry {
     dest_register: u8,
     op_a_value: u64,
@@ -114,7 +114,24 @@ impl ALUEntry {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
+pub struct CommitBufferEntry {
+    pub dest_register: u8,
+    pub value: u64,
+    pub pc: u64,
+}
+
+impl CommitBufferEntry {
+    pub fn new(dest_register: u8, value: u64, pc: u64) -> CommitBufferEntry {
+        CommitBufferEntry {
+            dest_register,
+            value,
+            pc,
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize)]
 pub struct ALU {
     stage1: Option<ALUEntry>,
     stage2: Option<ALUEntry>,
@@ -169,10 +186,29 @@ impl ALU {
     fn compute(&mut self, stage1_entry: &ALUEntry) -> u64 {
         match stage1_entry.op_code.as_str() {
             "add" => stage1_entry.op_a_value + stage1_entry.op_b_value,
-            "sub" => stage1_entry.op_a_value - stage1_entry.op_b_value,
+            "sub" => if stage1_entry.op_a_value < stage1_entry.op_b_value {
+                self.forwarding_exception = true;
+                return 0;
+            } else {
+                stage1_entry.op_a_value - stage1_entry.op_b_value
+            },
             "mulu" => stage1_entry.op_a_value * stage1_entry.op_b_value,
-            "divu" => stage1_entry.op_a_value / stage1_entry.op_b_value,
-            "remu" => stage1_entry.op_a_value % stage1_entry.op_b_value,
+            "divu" => {
+                if stage1_entry.op_b_value == 0 {
+                    self.forwarding_exception = true;
+                    return 0;
+                } else {
+                    stage1_entry.op_a_value / stage1_entry.op_b_value
+                }
+            }
+            "remu" => {
+                if stage1_entry.op_b_value == 0 {
+                    self.forwarding_exception = true;
+                    return 0;
+                } else {
+                    stage1_entry.op_a_value % stage1_entry.op_b_value
+                }
+            }
             _ => panic!("Invalid op code"),
         }
     }
@@ -186,7 +222,7 @@ impl ALU {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct DecodedInstruction {
     pub pc: u64,
     pub op_code: String,

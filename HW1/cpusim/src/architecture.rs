@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
 
 use crate::arch_modules::{
-    ActiveListEntry, ALU, DecodedInstruction, Instruction, IntegerQueueEntry,
+    ActiveListEntry, ALU, CommitBufferEntry, DecodedInstruction, Instruction, IntegerQueueEntry,
 };
 
 const INITIAL_PC: u64 = 0;
@@ -19,7 +17,7 @@ const DECODED_BUFFER_SIZE: usize = 4;
 const ALU_COUNT: usize = 4;
 const INITIAL_EXCEPTION_STATE: bool = false;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, PartialEq, Serialize)]
 pub struct ProcessorState {
     #[serde(rename = "ActiveList")]
     active_list: Vec<ActiveListEntry>,
@@ -39,6 +37,8 @@ pub struct ProcessorState {
     integer_queue: Vec<IntegerQueueEntry>,
     #[serde(skip_serializing)] // skip serializing ALUs
     alus: Vec<ALU>,
+    #[serde(skip_serializing)] // skip serializing commit buffer
+    commit_buffer: Vec<CommitBufferEntry>,
     #[serde(rename = "PC")]
     pc: u64,
     #[serde(rename = "PhysicalRegisterFile")]
@@ -59,6 +59,7 @@ impl ProcessorState {
             free_list: (START_OF_FREE_REGISTER_LIST..END_OF_FREE_REGISTER_LIST).collect(),
             integer_queue: Vec::with_capacity(INTEGER_QUEUE_SIZE),
             alus: vec![ALU::new(); ALU_COUNT],
+            commit_buffer: Vec::with_capacity(ALU_COUNT),
             pc: INITIAL_PC,
             physical_register_file: vec![0; PHYSICAL_REGISTER_FILE_SIZE],
             register_map_table: (0..REGISTER_MAP_TABLE_SIZE).collect(),
@@ -83,8 +84,7 @@ impl ProcessorState {
     /// Propagates the processor state by one cycle.
     pub fn propagate(&self, instructions: &mut Vec<Instruction>) -> ProcessorState {
         let mut next_state = self.clone();
-        next_state.poll_forwarding_paths();
-        next_state.commit(&self);
+        next_state.commit();
         next_state.issue();
         let backpressure = next_state.rename_and_dispatch(&self);
         next_state.fetch_and_decode(instructions, backpressure);
@@ -161,53 +161,55 @@ impl ProcessorState {
     // enter the Exception mode in the next cycle.
     // The Commit unit then removes instructions picked for retirement from the Active list and accord-
     // ingly frees their old destination physical register.
-    fn commit(&mut self, current_state: &ProcessorState) {
+    fn commit(&mut self) {
         let mut retired_instructions = 0;
-        let mut to_commit: HashMap<u64, (u8, u64)> = HashMap::new();
-        // Update the active list using the ALU forwarding paths
+        self.read_integer_queue_fwd_paths();
 
-        for alu in current_state.alus.iter() {
-            if alu.is_forwarding {
-                for entry in self.active_list.iter_mut() {
-                    if entry.pc == alu.forwarding_pc {
-                        if alu.forwarding_exception {
-                            entry.is_exception = true;
-                        } else {
-                            entry.is_done = true;
-                            to_commit.insert(entry.pc, (alu.forwarding_reg, alu.forwarding_value));
-                        }
-                    }
-                }
-            }
-        }
-        println!("{:?}", to_commit);
-        for (_, (reg,_)) in &to_commit {
-            self.set_free(*reg);
-        }
-
-        for entry in current_state.active_list.iter() {
+        let mut to_remove_pcs: Vec<u64> = Vec::new();
+        for entry in self.clone().active_list.iter() {
             if retired_instructions == DECODED_BUFFER_SIZE {
                 break; // Stop committing if four instructions are already picked.
             }
             if entry.is_done {
                 retired_instructions += 1;
-                println!("{:?}", entry.pc);
-                let reg_to_write = to_commit.get(&entry.pc).unwrap();
-                self.physical_register_file[reg_to_write.0 as usize] = reg_to_write.1;
+                // add free register to free list // TODO
+                self.free_list.push(entry.old_destination);
+                to_remove_pcs.push(entry.pc);
             } else if entry.is_exception {
-                self.exception = true;
-                self.exception_pc = entry.pc;
+                self.set_exception(entry.pc); // Set exception mode if an instruction triggers an exception.
                 break;
             } else {
-                return; // Stop committing if an instruction is not completed yet.
+                break; // Stop committing if an instruction is not completed yet.
             }
         }
-        self.active_list.retain(|x| !x.is_done);
+
+        for pc in to_remove_pcs {
+            self.active_list.retain(|x| x.pc != pc);
+            self.commit_buffer.retain(|x| x.pc != pc);
+        }
+        self.read_active_list_fwd_paths();
     }
 
     /// =============================================== ///
     /// --------------- Helper Functions -------------- ///
     /// =============================================== ///
+
+    /// Clear active list entry and update register with new value
+    pub fn commit_entry(&mut self, entry: ActiveListEntry) {
+        let buffer_entry = self
+            .commit_buffer
+            .iter()
+            .find(|x| x.pc == entry.pc)
+            .unwrap();
+        self.physical_register_file[buffer_entry.dest_register as usize] = buffer_entry.value;
+        self.set_free(buffer_entry.dest_register);
+    }
+
+    /// Sets exception mode
+    pub fn set_exception(&mut self, pc: u64) {
+        self.exception = true;
+        self.exception_pc = pc;
+    }
 
     /// Issues the oldest ready instruction to an available ALU.
     fn issue_instruction(&mut self) {
@@ -236,27 +238,64 @@ impl ProcessorState {
         None
     }
 
-    /// The integer queue polls the forwarding paths from the ALUs to check if any values have been
-    /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
-    fn poll_forwarding_paths(&mut self) {
+    /// The active list is polled for the forwarding paths from the ALUs to check if any values have
+    /// been forwarded. If so, the active list updates the relevant entries with the forwarded values.
+    /// The active list is also updated with the exception status of the forwarded values.
+    fn read_active_list_fwd_paths(&mut self) {
         for alu in self.alus.clone().iter() {
             if alu.is_forwarding {
-                self.check_forwarded_values(alu.forwarding_reg, alu.forwarding_value);
+                self.update_active_list(alu);
+            }
+        }
+    }
+
+    /// The active list checks if any of its entries are ready to be issued,
+    /// and if so, updates the entries accordingly.
+    fn update_active_list(&mut self, alu: &ALU) {
+        let mut to_commit_entries: Vec<ActiveListEntry> = Vec::new();
+        for entry in self.active_list.iter_mut() {
+            if entry.pc == alu.forwarding_pc {
+                entry.is_done = true;
+                if alu.forwarding_exception {
+                    entry.is_exception = true;
+                } else {
+                    to_commit_entries.push(entry.clone());
+                    self.commit_buffer.push(CommitBufferEntry::new(
+                        alu.forwarding_reg,
+                        alu.forwarding_value,
+                        entry.pc,
+                    ));
+                }
+            }
+        }
+        for entry in to_commit_entries {
+            self.commit_entry(entry);
+        }
+    }
+
+    /// The integer queue polls the forwarding paths from the ALUs to check if any values have been
+    /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
+    fn read_integer_queue_fwd_paths(&mut self) {
+        for alu in self.alus.clone().iter() {
+            if alu.is_forwarding {
+                self.update_integer_queue(alu.forwarding_reg, alu.forwarding_value);
             }
         }
     }
 
     /// The integer queue checks if any of its entries are ready to be issued,
     /// and if so, updates the entries accordingly.
-    fn check_forwarded_values(&mut self, forwarding_reg: u8, forwarding_value: u64) {
+    fn update_integer_queue(&mut self, forwarding_reg: u8, forwarding_value: u64) {
         for entry in self.integer_queue.iter_mut() {
             if !entry.op_a_is_ready && (entry.op_a_reg_tag == forwarding_reg) {
                 entry.op_a_is_ready = true;
                 entry.op_a_value = forwarding_value;
+                entry.op_a_reg_tag = 0;
             }
             if !entry.op_b_is_ready && (entry.op_b_reg_tag == forwarding_reg) {
                 entry.op_b_is_ready = true;
                 entry.op_b_value = forwarding_value;
+                entry.op_b_reg_tag = 0;
             }
         }
     }
