@@ -14,18 +14,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut instructions = parse_input()?;
 
     // Initialize the processor state
-    let mut state_log: Vec<architecture::ProcessorState> = Vec::new();
-    let mut processor_state = architecture::ProcessorState::new();
+    let mut state_log: Vec<architecture::Processor> = Vec::new();
+    let mut processor = architecture::Processor::new();
 
     // Log the initial state
-    processor_state.log(&mut state_log);
+    processor.log_state(&mut state_log);
 
-    while !(instructions.is_empty() && processor_state.active_list_is_empty())
-        && (state_log.len() < MAX_CYCLES)
+    while !(instructions.is_empty() && processor.is_done()) && (state_log.len() < MAX_CYCLES)
     {
-        let new_processor_state = processor_state.propagate(&mut instructions);
-        processor_state.latch(&new_processor_state);
-        processor_state.log(&mut state_log);
+        let new_processor_state = processor.propagate(&mut instructions);
+        processor.latch(&new_processor_state);
+        processor.log_state(&mut state_log);
     }
 
     save_log(&state_log)?;
@@ -45,7 +44,7 @@ fn parse_input() -> Result<Vec<Instruction>, Box<dyn Error>> {
     Ok(instructions)
 }
 
-fn save_log(state_log: &Vec<architecture::ProcessorState>) -> Result<(), Box<dyn Error>> {
+fn save_log(state_log: &Vec<architecture::Processor>) -> Result<(), Box<dyn Error>> {
     let output_file = resolve_output_path()?;
     match serde_json::to_string_pretty(state_log) {
         Ok(json) => fs::write(output_file.as_path(), json)?,

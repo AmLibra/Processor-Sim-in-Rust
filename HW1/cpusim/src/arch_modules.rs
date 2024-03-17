@@ -3,7 +3,7 @@ use serde::Serialize;
 const ALLOWED_OP_CODES: [&str; 5] = ["add", "sub", "mulu", "divu", "remu"];
 const IMMEDIATE_OP_CODES: [&str; 1] = ["addi"];
 
-#[derive(Clone, PartialEq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ActiveListEntry {
     #[serde(rename = "Done")]
     pub is_done: bool,
@@ -35,7 +35,7 @@ impl ActiveListEntry {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct IntegerQueueEntry {
     #[serde(rename = "DestRegister")]
     pub dest_register: u8,
@@ -87,7 +87,7 @@ impl IntegerQueueEntry {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ALUEntry {
     dest_register: u8,
     op_a_value: u64,
@@ -114,7 +114,7 @@ impl ALUEntry {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct CommitBufferEntry {
     pub dest_register: u8,
     pub value: u64,
@@ -131,7 +131,7 @@ impl CommitBufferEntry {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ALU {
     stage1: Option<ALUEntry>,
     stage2: Option<ALUEntry>,
@@ -179,41 +179,63 @@ impl ALU {
         }
         if self.stage1.is_some() {
             self.stage2 = self.stage1.take();
-            self.update_forwarding(); // Update forwarding values directly after stage 2 is occupied
+            self.update_forwarding_state(); // Update forwarding values directly after stage 2 is occupied
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.stage1 = None;
+        self.stage2 = None;
+        self.is_forwarding = false;
+        self.forwarding_reg = 0;
+        self.forwarding_value = 0;
+        self.forwarding_pc = 0;
+        self.forwarding_exception = false;
     }
 
     fn compute(&mut self, stage1_entry: &ALUEntry) -> u64 {
         match stage1_entry.op_code.as_str() {
-            "add" => stage1_entry.op_a_value + stage1_entry.op_b_value,
-            "sub" => if stage1_entry.op_a_value < stage1_entry.op_b_value {
-                self.forwarding_exception = true;
-                return 0;
-            } else {
-                stage1_entry.op_a_value - stage1_entry.op_b_value
-            },
-            "mulu" => stage1_entry.op_a_value * stage1_entry.op_b_value,
-            "divu" => {
-                if stage1_entry.op_b_value == 0 {
-                    self.forwarding_exception = true;
-                    return 0;
-                } else {
-                    stage1_entry.op_a_value / stage1_entry.op_b_value
-                }
-            }
-            "remu" => {
-                if stage1_entry.op_b_value == 0 {
-                    self.forwarding_exception = true;
-                    return 0;
-                } else {
-                    stage1_entry.op_a_value % stage1_entry.op_b_value
-                }
-            }
+            "add" => self.wrapping_op(stage1_entry, u64::wrapping_add),
+            "sub" => self.wrapping_op(stage1_entry, u64::wrapping_sub),
+            "mulu" => self.wrapping_op(stage1_entry, u64::wrapping_mul),
+            "divu" => self.division_op(stage1_entry),
+            "remu" => self.modulo_op(stage1_entry),
+            "addi" => self.addi_op(stage1_entry),
             _ => panic!("Invalid op code"),
         }
     }
 
-    fn update_forwarding(&mut self) {
+    fn wrapping_op<F>(&self, entry: &ALUEntry, op: F) -> u64
+        where
+            F: Fn(u64, u64) -> u64,
+    {
+        op(entry.op_a_value, entry.op_b_value)
+    }
+
+    fn division_op(&mut self, entry: &ALUEntry) -> u64 {
+        if entry.op_b_value == 0 {
+            self.forwarding_exception = true;
+            0
+        } else {
+            entry.op_a_value / entry.op_b_value
+        }
+    }
+
+    fn modulo_op(&mut self, entry: &ALUEntry) -> u64 {
+        if entry.op_b_value == 0 {
+            self.forwarding_exception = true;
+            0
+        } else {
+            entry.op_a_value % entry.op_b_value
+        }
+    }
+
+    fn addi_op(&self, entry: &ALUEntry) -> u64 {
+        let immediate = entry.op_b_value as i64 as u64;
+        entry.op_a_value.wrapping_add(immediate)
+    }
+
+    fn update_forwarding_state(&mut self) {
         let stage2_entry = self.stage2.as_ref().unwrap().clone();
         self.is_forwarding = true;
         self.forwarding_reg = stage2_entry.dest_register;
@@ -222,7 +244,7 @@ impl ALU {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct DecodedInstruction {
     pub pc: u64,
     pub op_code: String,

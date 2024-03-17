@@ -16,9 +16,10 @@ const END_OF_FREE_REGISTER_LIST: u8 = 64;
 const DECODED_BUFFER_SIZE: usize = 4;
 const ALU_COUNT: usize = 4;
 const INITIAL_EXCEPTION_STATE: bool = false;
+const EXCEPTION_PC: u64 = 0x10000;
 
-#[derive(Clone, PartialEq, Serialize)]
-pub struct ProcessorState {
+#[derive(Clone, Serialize)]
+pub struct Processor {
     #[serde(rename = "ActiveList")]
     active_list: Vec<ActiveListEntry>,
     #[serde(rename = "BusyBitTable")]
@@ -28,7 +29,7 @@ pub struct ProcessorState {
     #[serde(skip_serializing)] // skip serializing decoded instructions
     decoded_instructions: Vec<DecodedInstruction>,
     #[serde(rename = "Exception")]
-    exception: bool,
+    exception_mode: bool,
     #[serde(rename = "ExceptionPC")]
     exception_pc: u64,
     #[serde(rename = "FreeList")]
@@ -47,14 +48,14 @@ pub struct ProcessorState {
     register_map_table: Vec<u8>,
 }
 
-impl ProcessorState {
-    pub fn new() -> ProcessorState {
-        ProcessorState {
+impl Processor {
+    pub fn new() -> Processor {
+        Processor {
             active_list: Vec::with_capacity(ACTIVE_LIST_SIZE),
             busy_bit_table: vec![false; BUSY_BIT_TABLE_SIZE],
             decoded_pcs: Vec::with_capacity(DECODED_BUFFER_SIZE),
             decoded_instructions: Vec::with_capacity(DECODED_BUFFER_SIZE),
-            exception: INITIAL_EXCEPTION_STATE,
+            exception_mode: INITIAL_EXCEPTION_STATE,
             exception_pc: INITIAL_EXCEPTION_PC,
             free_list: (START_OF_FREE_REGISTER_LIST..END_OF_FREE_REGISTER_LIST).collect(),
             integer_queue: Vec::with_capacity(INTEGER_QUEUE_SIZE),
@@ -66,41 +67,47 @@ impl ProcessorState {
         }
     }
 
-    /// Returns true if the active list is empty.
-    pub fn active_list_is_empty(&self) -> bool {
-        self.active_list.is_empty()
+    pub fn is_done(&self) -> bool {
+        self.active_list.is_empty() && self.exception_mode == false
     }
 
     /// Logs the current state of the processor to the state log.
-    pub fn log(&self, state_log: &mut Vec<ProcessorState>) {
+    pub fn log_state(&self, state_log: &mut Vec<Processor>) {
         state_log.push(self.clone());
     }
 
     /// Latches the current state of the processor to the given state.
-    pub fn latch(&mut self, new_state: &ProcessorState) {
+    pub fn latch(&mut self, new_state: &Processor) {
         *self = new_state.clone();
     }
 
     /// Propagates the processor state by one cycle.
-    pub fn propagate(&self, instructions: &mut Vec<Instruction>) -> ProcessorState {
+    pub fn propagate(&self, instructions: &mut Vec<Instruction>) -> Processor {
         let mut next_state = self.clone();
+        let mut backpressure = false;
         next_state.commit();
-        next_state.issue();
-        let backpressure = next_state.rename_and_dispatch(&self);
+        if !next_state.exception_mode {
+            next_state.issue();
+            backpressure = next_state.rename_and_dispatch(&self);
+        }
         next_state.fetch_and_decode(instructions, backpressure);
         return next_state;
     }
 
     /// STAGE 1: Fetches and decodes the next four instructions from the instruction queue.
-    /// 1. If backpressure is applied or an exception occurs, the fetch and decode process is halted.
+    /// 1. If backpressure is applied or an exception occurs, the fetch and decode process is halted,
+    /// the PC is set to the exception PC, and the decoded instructions are cleared.
     /// 2. If the instruction queue is empty, the process is also halted.
     /// 3. Otherwise, the next up to four instructions are fetched and decoded.
     fn fetch_and_decode(&mut self, instructions: &mut Vec<Instruction>, backpressure: bool) {
-        // Apply backpressure or handle exception by not fetching new instructions
-        if backpressure || self.exception {
-            return;
+        if backpressure {
+            return; // Do not fetch and decode
         }
-
+        if self.exception_mode {
+            self.pc = EXCEPTION_PC;
+            self.clear_decoded_instructions();
+            return; // Do not fetch and decode and clear decoded instructions
+        }
         while self.decoded_instructions.len() < DECODED_BUFFER_SIZE && !instructions.is_empty() {
             if let Some(instruction) = instructions.pop() {
                 self.decoded_pcs.push(self.pc);
@@ -117,16 +124,14 @@ impl ProcessorState {
     /// instructions to the integer queue and active list as per the R10000 CPU paper.
     /// 3. If there are not enough resources, backpressure is applied.
     /// 4. The integer queue is always listening for forwarding paths from the ALUs.
-    fn rename_and_dispatch(&mut self, current_state: &ProcessorState) -> bool {
+    fn rename_and_dispatch(&mut self, current_state: &Processor) -> bool {
         if !self.has_sufficient_resources() {
             return true; // Apply backpressure if resources are insufficient.
         }
-
         for decoded_instruction in &current_state.decoded_instructions {
             self.add_active_list_entry(decoded_instruction);
             self.add_integer_queue_entry(current_state, decoded_instruction);
         }
-
         self.clear_decoded_instructions();
         false // No backpressure since instructions were successfully renamed and dispatched.
     }
@@ -137,7 +142,10 @@ impl ProcessorState {
     /// 2. If ready, issues the instruction to an available ALU.
     /// 3. The integer queue is always listening for forwarding paths from the ALUs.
     fn issue(&mut self) {
-        //self.poll_forwarding_paths();
+        if self.any_alu_exception() {
+            return; // Do not issue instructions if an exception is incoming.
+        }
+        self.read_integer_queue_fwd_paths();
         for alu in self.alus.iter_mut() {
             alu.execute();
         }
@@ -153,31 +161,28 @@ impl ProcessorState {
     /// results.
     /// 3. Recycle the physical registers of the retired instructions, pushing them back to the
     /// free list.
-    // During each cycle, the Commit unit scans the Active list in program order and picks instructions
-    // for retirement until any of the following happens:
-    //  four instructions are already picked,
-    //  an instruction is met that is not completed yet, or
-    //  an instruction is met that is completed but triggers an exception. In this case, the processor will
-    // enter the Exception mode in the next cycle.
-    // The Commit unit then removes instructions picked for retirement from the Active list and accord-
-    // ingly frees their old destination physical register.
     fn commit(&mut self) {
-        let mut retired_instructions = 0;
-        self.read_integer_queue_fwd_paths();
+        if self.exception_mode {
+            if self.active_list.is_empty() {
+                self.exception_mode = false;
+            }
+            return self.rollback();
+        }
 
+        let mut retired_instructions = 0;
         let mut to_remove_pcs: Vec<u64> = Vec::new();
+
         for entry in self.clone().active_list.iter() {
             if retired_instructions == DECODED_BUFFER_SIZE {
                 break; // Stop committing if four instructions are already picked.
             }
-            if entry.is_done {
+            if entry.is_exception {
+                self.set_exception_mode(entry.pc);
+                break;
+            } else if entry.is_done {
                 retired_instructions += 1;
-                // add free register to free list // TODO
                 self.free_list.push(entry.old_destination);
                 to_remove_pcs.push(entry.pc);
-            } else if entry.is_exception {
-                self.set_exception(entry.pc); // Set exception mode if an instruction triggers an exception.
-                break;
             } else {
                 break; // Stop committing if an instruction is not completed yet.
             }
@@ -188,6 +193,30 @@ impl ProcessorState {
             self.commit_buffer.retain(|x| x.pc != pc);
         }
         self.read_active_list_fwd_paths();
+    }
+
+    /// EXCEPTION MODE: Rollback instructions and recover register map table, busy bit table,
+    /// and free list.
+    fn rollback(&mut self) {
+        let mut rolled_back_instructions = 0;
+        let mut to_remove_pcs: Vec<u64> = Vec::new();
+
+        for entry in self.clone().active_list.iter().rev() {
+            if rolled_back_instructions == DECODED_BUFFER_SIZE {
+                break; // Stop rolling back if four instructions are already picked.
+            }
+            rolled_back_instructions += 1;
+            let allocated_register = self.map_register(entry.logical_destination);
+            self.set_free(allocated_register);
+            self.free_list.push(allocated_register);
+            self.register_map_table[entry.logical_destination as usize] = entry.old_destination;
+            to_remove_pcs.push(entry.pc);
+        }
+
+        for pc in to_remove_pcs {
+            self.active_list.retain(|x| x.pc != pc);
+            self.commit_buffer.retain(|x| x.pc != pc);
+        }
     }
 
     /// =============================================== ///
@@ -206,9 +235,11 @@ impl ProcessorState {
     }
 
     /// Sets exception mode
-    pub fn set_exception(&mut self, pc: u64) {
-        self.exception = true;
+    pub fn set_exception_mode(&mut self, pc: u64) {
+        self.exception_mode = true;
         self.exception_pc = pc;
+        self.reset_alus();
+        self.reset_integer_queue();
     }
 
     /// Issues the oldest ready instruction to an available ALU.
@@ -273,6 +304,16 @@ impl ProcessorState {
         }
     }
 
+    /// Integer queue may want to know if there is an exception incoming, so poll the ALUs for that.
+    fn any_alu_exception(&self) -> bool {
+        for alu in self.alus.iter() {
+            if alu.forwarding_exception {
+                return true;
+            }
+        }
+        false
+    }
+
     /// The integer queue polls the forwarding paths from the ALUs to check if any values have been
     /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
     fn read_integer_queue_fwd_paths(&mut self) {
@@ -303,7 +344,7 @@ impl ProcessorState {
     /// Pushes an integer queue entry of the given decoded instruction to the integer queue.
     fn add_integer_queue_entry(
         &mut self,
-        current_state: &ProcessorState,
+        current_state: &Processor,
         decoded_instruction: &DecodedInstruction,
     ) {
         let (physical_op_a_reg_tag, op_a_ready) =
@@ -415,5 +456,17 @@ impl ProcessorState {
     /// Unsets the busy bit for a register.
     fn set_free(&mut self, register: u8) {
         self.busy_bit_table[register as usize] = false;
+    }
+
+    /// Resets execution units
+    fn reset_alus(&mut self) {
+        for alu in self.alus.iter_mut() {
+            alu.reset();
+        }
+    }
+
+    /// Resets integer queue
+    fn reset_integer_queue(&mut self) {
+        self.integer_queue.clear();
     }
 }
