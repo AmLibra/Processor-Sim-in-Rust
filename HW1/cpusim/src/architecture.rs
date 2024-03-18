@@ -33,7 +33,8 @@ pub struct Processor {
     #[serde(rename = "ExceptionPC")]
     exception_pc: u64,
     #[serde(rename = "FreeList")]
-    free_list: Vec<u8>, // FIFO queue
+    free_list: Vec<u8>,
+    // FIFO queue
     #[serde(rename = "IntegerQueue")]
     integer_queue: Vec<IntegerQueueEntry>,
     #[serde(skip_serializing)] // skip serializing ALUs
@@ -130,7 +131,7 @@ impl Processor {
         }
         for decoded_instruction in &current_state.decoded_instructions {
             self.add_active_list_entry(decoded_instruction);
-            self.add_integer_queue_entry(current_state, decoded_instruction);
+            self.add_integer_queue_entry(decoded_instruction);
         }
         self.clear_decoded_instructions();
         false // No backpressure since instructions were successfully renamed and dispatched.
@@ -342,16 +343,14 @@ impl Processor {
     }
 
     /// Pushes an integer queue entry of the given decoded instruction to the integer queue.
-    fn add_integer_queue_entry(
-        &mut self,
-        current_state: &Processor,
-        decoded_instruction: &DecodedInstruction,
-    ) {
-        let (physical_op_a_reg_tag, op_a_ready) =
-            self.get_operand_info(decoded_instruction.op_a_reg_tag, false);
-        let (physical_op_b_reg_tag, op_b_ready) = self.get_operand_info(
+    fn add_integer_queue_entry(&mut self, decoded_instruction: &DecodedInstruction) {
+        let (physical_op_a_reg_tag, op_a_ready, op_a_value) =
+            self.get_operand_info(decoded_instruction.op_a_reg_tag, false, 0);
+
+        let (physical_op_b_reg_tag, op_b_ready, op_b_value) = self.get_operand_info(
             decoded_instruction.op_b_reg_tag,
             decoded_instruction.immediate,
+            decoded_instruction.immediate_value as u64,
         );
 
         let physical_dest_register =
@@ -361,10 +360,10 @@ impl Processor {
             physical_dest_register,
             op_a_ready,
             physical_op_a_reg_tag,
-            current_state.physical_register_file[physical_op_a_reg_tag as usize],
+            op_a_value,
             op_b_ready,
             physical_op_b_reg_tag,
-            current_state.get_operand_b_value(decoded_instruction, physical_op_b_reg_tag),
+            op_b_value,
             decoded_instruction.op_code.clone(),
             decoded_instruction.pc,
         ));
@@ -382,31 +381,18 @@ impl Processor {
         ));
     }
 
-    /// Get operand B value based on whether it is an immediate value or a register value.
-    fn get_operand_b_value(
-        &self,
-        decoded_instruction: &DecodedInstruction,
-        physical_op_b_reg_tag: u8,
-    ) -> u64 {
-        if decoded_instruction.immediate {
-            decoded_instruction.immediate_value as u64
-        } else {
-            self.physical_register_file[physical_op_b_reg_tag as usize]
-        }
-    }
-
     /// Helper function to determine the physical register and readiness of an operand.
     /// If the operand is ready, the physical register tag is set to 0.
-    fn get_operand_info(&self, reg_tag: u8, is_immediate: bool) -> (u8, bool) {
+    fn get_operand_info(&self, reg_tag: u8, is_immediate: bool, immediate: u64) -> (u8, bool, u64) {
         // Immediate operands are always considered "ready" and don't have a physical register tag.
         if is_immediate {
-            (0, true)
+            (0, true, immediate)
         } else {
             let physical_reg_tag = self.map_register(reg_tag);
             let is_ready = self.register_is_ready(physical_reg_tag);
             // If the operand is ready, we disregard the physical register tag by setting it to 0.
             let effective_reg_tag = if is_ready { 0 } else { physical_reg_tag };
-            (effective_reg_tag, is_ready)
+            (effective_reg_tag, is_ready, self.physical_register_file[physical_reg_tag as usize])
         }
     }
 
