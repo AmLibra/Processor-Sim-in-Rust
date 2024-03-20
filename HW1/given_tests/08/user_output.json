@@ -8491,21 +8491,10 @@
     ],
     "IntegerQueue": [
       {
-        "DestRegister": 50,
+        "DestRegister": 51,
         "OpAIsReady": true,
         "OpARegTag": 0,
-        "OpAValue": 19,
-        "OpBIsReady": false,
-        "OpBRegTag": 49,
-        "OpBValue": 0,
-        "OpCode": "sub",
-        "PC": 18
-      },
-      {
-        "DestRegister": 51,
-        "OpAIsReady": false,
-        "OpARegTag": 49,
-        "OpAValue": 0,
+        "OpAValue": 1104,
         "OpBIsReady": false,
         "OpBRegTag": 50,
         "OpBValue": 0,

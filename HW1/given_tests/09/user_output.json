@@ -8500,17 +8500,6 @@
         "OpBValue": 0,
         "OpCode": "remu",
         "PC": 16
-      },
-      {
-        "DestRegister": 51,
-        "OpAIsReady": true,
-        "OpARegTag": 0,
-        "OpAValue": 1084,
-        "OpBIsReady": false,
-        "OpBRegTag": 50,
-        "OpBValue": 0,
-        "OpCode": "sub",
-        "PC": 19
       }
     ],
     "PC": 24,

@@ -143,9 +143,6 @@ impl Processor {
     /// 2. If ready, issues the instruction to an available ALU.
     /// 3. The integer queue is always listening for forwarding paths from the ALUs.
     fn issue(&mut self) {
-        if self.any_alu_exception() {
-            return; // Do not issue instructions if an exception is incoming.
-        }
         self.read_integer_queue_fwd_paths();
         for alu in self.alus.iter_mut() {
             alu.execute();
@@ -305,36 +302,26 @@ impl Processor {
         }
     }
 
-    /// Integer queue may want to know if there is an exception incoming, so poll the ALUs for that.
-    fn any_alu_exception(&self) -> bool {
-        for alu in self.alus.iter() {
-            if alu.forwarding_exception {
-                return true;
-            }
-        }
-        false
-    }
-
     /// The integer queue polls the forwarding paths from the ALUs to check if any values have been
     /// forwarded. If so, the integer queue updates the relevant entries with the forwarded values.
     fn read_integer_queue_fwd_paths(&mut self) {
         for alu in self.alus.clone().iter() {
             if alu.is_forwarding {
-                self.update_integer_queue(alu.forwarding_reg, alu.forwarding_value);
+                self.update_integer_queue(alu.forwarding_reg, alu.forwarding_value, alu.forwarding_exception);
             }
         }
     }
 
     /// The integer queue checks if any of its entries are ready to be issued,
     /// and if so, updates the entries accordingly.
-    fn update_integer_queue(&mut self, forwarding_reg: u8, forwarding_value: u64) {
+    fn update_integer_queue(&mut self, forwarding_reg: u8, forwarding_value: u64, is_exception: bool) {
         for entry in self.integer_queue.iter_mut() {
-            if !entry.op_a_is_ready && (entry.op_a_reg_tag == forwarding_reg) {
+            if !entry.op_a_is_ready && !is_exception && (entry.op_a_reg_tag == forwarding_reg) {
                 entry.op_a_is_ready = true;
                 entry.op_a_value = forwarding_value;
                 entry.op_a_reg_tag = 0;
             }
-            if !entry.op_b_is_ready && (entry.op_b_reg_tag == forwarding_reg) {
+            if !entry.op_b_is_ready && !is_exception && (entry.op_b_reg_tag == forwarding_reg) {
                 entry.op_b_is_ready = true;
                 entry.op_b_value = forwarding_value;
                 entry.op_b_reg_tag = 0;
